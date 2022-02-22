@@ -1,0 +1,217 @@
+
+options(width=250)
+options(max.print=10000)
+options(stringsAsFactors = FALSE)
+options(scipen=10000)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(sqldf)
+library(reshape2)
+library(scales)
+library(plotly)
+
+#load("EcologicalStudy_calculations.RData")
+#save.image(file="EcologicalStudy_calculations.RData")
+
+infile_stats_0 = "EcologicalStudy_2007paper.txt"
+infile_stats_1 = "EcologicalStudy_2021data_asb1960to1969_output_20211121.txt"
+infile_stats_2 = "EcologicalStudy_2021data_asb1970to1979_output_20211121.txt"
+
+outfile_stats = "EcologicalStudy_removeLog_output.txt"
+
+infile_asbestos_ban = "fromOdko_20211010__Asbestos_ban_chronology.txt"
+
+
+
+########## Adjust the order of the output stats file
+
+stats0 = read.table( infile_stats_0, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+stats1 = read.table( infile_stats_1, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+stats2 = read.table( infile_stats_2, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+
+stats = rbind(stats0, stats1, stats2)
+
+stats$intercept = as.numeric(as.character(stats$intercept))
+stats$BO_CI1 = as.numeric(as.character(stats$BO_CI1))
+stats$BO_CI2 = as.numeric(as.character(stats$BO_CI2))
+stats$B0_SE = as.numeric(as.character(stats$B0_SE))
+stats$slope = as.numeric(as.character(stats$slope))
+stats$B1_CI1 = as.numeric(as.character(stats$B1_CI1))
+stats$B1_CI2 = as.numeric(as.character(stats$B1_CI2))
+stats$B1_SE = as.numeric(as.character(stats$B1_SE))
+
+stats$actual_intercept = 10^stats$intercept
+stats$actual_B0_CI1 = 10^stats$BO_CI1
+stats$actual_B0_CI2 = 10^stats$BO_CI2
+stats$actual_B0_SE = 10^stats$B0_SE
+stats$actual_slope = 10^stats$slope
+stats$actual_B1_CI1 = 10^stats$B1_CI1
+stats$actual_B1_CI2 = 10^stats$B1_CI2
+stats$actual_B1_SE = 10^stats$B1_SE
+
+write.table( stats, file=outfile_stats, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE )
+
+
+
+########## How much of the current world population does not have an asbestos ban?
+
+##### list of countries having asbestos ban
+
+ban = read.table( infile_asbestos_ban, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+
+
+
+##### United Nations (UN) world population
+##### Total Population - Both Sexes. De facto population in a country, area or region as of 1 July of the year indicated. Figures are presented in thousands.
+##### https://population.un.org/wpp/Download/Standard/Population/WPP2019_POP_F01_1_TOTAL_POPULATION_BOTH_SEXES.xlsx
+
+pop_total = read.table( "C:/emma/KenTakahashi_RawData/WPP2019_POP_F01_1_TOTAL_POPULATION_BOTH_SEXES.csv", sep=",", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+
+pop2 = melt(pop_total, id.vars=c("Index", "Variant", "Region..subregion..country.or.area..", "Notes", "Country.code", "Type", "Parent.code"))
+names(pop2)[names(pop2)=="Region..subregion..country.or.area.."] = "Country_Name"
+names(pop2)[names(pop2)=="variable"] = "Year"
+names(pop2)[names(pop2)=="value"] = "population"
+pop3 = pop2[(pop2$Type=="Country/Area"), c("Country_Name", "Year", "population")]
+pop3$Year = gsub("X", "", pop3$Year)
+pop3$population = gsub(" ", "", pop3$population)
+pop3$Year = as.numeric(as.character(pop3$Year))
+pop3$population = as.numeric(as.character(pop3$population))
+pop3$population = pop3$population * 1000
+
+pop2020 = pop3[(pop3$Year == 2020),]
+pop2020$Country = pop2020$Country_Name
+
+ban$Country = ifelse( (ban$Country=="Brunei"), "Brunei Darussalam", ban$Country )
+ban$Country = ifelse( (ban$Country=="Czech Republic"), "Czechia", ban$Country )
+ban$Country = ifelse( (ban$Country=="Korea"), "Republic of Korea", ban$Country )
+ban$Country = ifelse( (ban$Country=="Macedonia"), "North Macedonia", ban$Country )
+ban$Country = ifelse( (ban$Country=="Taiwan"), "China, Taiwan Province of China", ban$Country )
+ban$Country = ifelse( (ban$Country=="UK"), "United Kingdom", ban$Country )
+
+ban$Country[!(ban$Country %in% pop2020$Country)]
+
+pop2020_ban = pop2020[(pop2020$Country %in% ban$Country),]
+pop2020_noban = pop2020[!(pop2020$Country %in% ban$Country),]
+
+nrow(ban)            # 67
+nrow(pop2020)       # 235
+nrow(pop2020_ban)    # 67
+nrow(pop2020_noban) # 168
+nrow(pop2020_ban) * 100 / nrow(pop2020)   # 28.51064
+nrow(pop2020_noban) * 100 / nrow(pop2020) # 71.48936
+
+sum(pop2020$population)       # 7794803000
+sum(pop2020_ban$population)   # 1583496000
+sum(pop2020_noban$population) # 6211307000
+sum(pop2020_ban$population) * 100 / sum(pop2020$population)   # 20.31477
+sum(pop2020_noban$population) * 100 / sum(pop2020$population) # 79.68523
+
+ban[,c("Country","Year")]
+                           Country      Year
+1                          Algeria      2009
+2                        Argentina      2001
+3                        Australia      2003
+4                          Austria      1990
+5                          Bahrain      1996
+6                          Belgium      1998
+7                           Brazil      2001
+8                Brunei Darussalam      1994
+9                         Bulgaria      2005
+10                          Canada      2018
+11                           Chile      2001
+12                        Colombia      2019
+13                         Croatia      2005
+14                          Cyprus      2005
+15                         Czechia      2005
+16                         Denmark      1972
+17                        Djibouti      1999
+18                           Egypt      2005
+19                         Estonia      2005
+20                         Finland      1992
+21                          France      1996
+22                           Gabon Not CleAR
+23                         Germany      1993
+24                       Gibraltar      2007
+25                          Greece      2005
+26                        Honduras      2004
+27                         Hungary      2005
+28                         Iceland      1983
+29                            Iraq      2016
+30                         Ireland      2000
+31                          Israel      2011
+32                           Italy      1992
+33                           Japan      2004
+34                          Jordan      2005
+35               Republic of Korea      2009
+36                          Kuwait      1995
+37                          Latvia      2001
+38                   Liechtenstein      1990
+39                       Lithuania      2005
+40                      Luxembourg      2002
+41                 North Macedonia      2014
+42                           Malta      2005
+43                       Mauritius      2004
+44                          Monaco      1997
+45                      Mozambique      2010
+46                     Netherlands      1991
+47                   New Caledonia      2007
+48                     New Zealand      2002
+49                          Norway      1984
+50                            Oman      2008
+51                          Poland      1997
+52                        Portugal      2005
+53                           Qatar      2010
+54                         Romania      2005
+55                    Saudi Arabia      1998
+56                          Serbia      2011
+57                      Seychelles Not CleAR
+58                        Slovakia      2005
+59                        Slovenia      1996
+60                    South Africa      2004
+61                           Spain      2002
+62                          Sweden      1973
+63                     Switzerland      1989
+64 China, Taiwan Province of China      2010
+65                          Turkey      2010
+66                  United Kingdom      1986
+67                         Uruguay      2002
+
+sort(pop2020_noban$Country_Name)
+  [1] "Afghanistan"                        "Albania"                            "American Samoa"                     "Andorra"                            "Angola"                            
+  [6] "Anguilla"                           "Antigua and Barbuda"                "Armenia"                            "Aruba"                              "Azerbaijan"                        
+ [11] "Bahamas"                            "Bangladesh"                         "Barbados"                           "Belarus"                            "Belize"                            
+ [16] "Benin"                              "Bermuda"                            "Bhutan"                             "Bolivia (Plurinational State of)"   "Bonaire, Sint Eustatius and Saba"  
+ [21] "Bosnia and Herzegovina"             "Botswana"                           "British Virgin Islands"             "Burkina Faso"                       "Burundi"                           
+ [26] "Cabo Verde"                         "Cambodia"                           "Cameroon"                           "Cayman Islands"                     "Central African Republic"          
+ [31] "Chad"                               "Channel Islands"                    "China"                              "China, Hong Kong SAR"               "China, Macao SAR"                  
+ [36] "Comoros"                            "Congo"                              "Cook Islands"                       "Costa Rica"                         "Côte d'Ivoire"                     
+ [41] "Cuba"                               "Curaçao"                            "Dem. People's Republic of Korea"    "Democratic Republic of the Congo"   "Dominica"                          
+ [46] "Dominican Republic"                 "Ecuador"                            "El Salvador"                        "Equatorial Guinea"                  "Eritrea"                           
+ [51] "Eswatini"                           "Ethiopia"                           "Falkland Islands (Malvinas)"        "Faroe Islands"                      "Fiji"                              
+ [56] "French Guiana"                      "French Polynesia"                   "Gambia"                             "Georgia"                            "Ghana"                             
+ [61] "Greenland"                          "Grenada"                            "Guadeloupe"                         "Guam"                               "Guatemala"                         
+ [66] "Guinea"                             "Guinea-Bissau"                      "Guyana"                             "Haiti"                              "Holy See"                          
+ [71] "India"                              "Indonesia"                          "Iran (Islamic Republic of)"         "Isle of Man"                        "Jamaica"                           
+ [76] "Kazakhstan"                         "Kenya"                              "Kiribati"                           "Kyrgyzstan"                         "Lao People's Democratic Republic"  
+ [81] "Lebanon"                            "Lesotho"                            "Liberia"                            "Libya"                              "Madagascar"                        
+ [86] "Malawi"                             "Malaysia"                           "Maldives"                           "Mali"                               "Marshall Islands"                  
+ [91] "Martinique"                         "Mauritania"                         "Mayotte"                            "Mexico"                             "Micronesia (Fed. States of)"       
+ [96] "Mongolia"                           "Montenegro"                         "Montserrat"                         "Morocco"                            "Myanmar"                           
+[101] "Namibia"                            "Nauru"                              "Nepal"                              "Nicaragua"                          "Niger"                             
+[106] "Nigeria"                            "Niue"                               "Northern Mariana Islands"           "Pakistan"                           "Palau"                             
+[111] "Panama"                             "Papua New Guinea"                   "Paraguay"                           "Peru"                               "Philippines"                       
+[116] "Puerto Rico"                        "Republic of Moldova"                "Réunion"                            "Russian Federation"                 "Rwanda"                            
+[121] "Saint Barthélemy"                   "Saint Helena"                       "Saint Kitts and Nevis"              "Saint Lucia"                        "Saint Martin (French part)"        
+[126] "Saint Pierre and Miquelon"          "Saint Vincent and the Grenadines"   "Samoa"                              "San Marino"                         "Sao Tome and Principe"             
+[131] "Senegal"                            "Sierra Leone"                       "Singapore"                          "Sint Maarten (Dutch part)"          "Solomon Islands"                   
+[136] "Somalia"                            "South Sudan"                        "Sri Lanka"                          "State of Palestine"                 "Sudan"                             
+[141] "Suriname"                           "Syrian Arab Republic"               "Tajikistan"                         "Thailand"                           "Timor-Leste"                       
+[146] "Togo"                               "Tokelau"                            "Tonga"                              "Trinidad and Tobago"                "Tunisia"                           
+[151] "Turkmenistan"                       "Turks and Caicos Islands"           "Tuvalu"                             "Uganda"                             "Ukraine"                           
+[156] "United Arab Emirates"               "United Republic of Tanzania"        "United States of America"           "United States Virgin Islands"       "Uzbekistan"                        
+[161] "Vanuatu"                            "Venezuela (Bolivarian Republic of)" "Viet Nam"                           "Wallis and Futuna Islands"          "Western Sahara"                    
+[166] "Yemen"                              "Zambia"                             "Zimbabwe" 
+
