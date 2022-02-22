@@ -1,0 +1,300 @@
+
+setwd("C:/emma/KenTakahashi_EcologicalStudy/resubmit_as_letter_2022feb")
+#setwd("C:/Emma_on_Windows_dualboot_desktop/KenTakahashi_EcologicalStudy/letter_feb2022")
+
+options(width=250)
+options(max.print=10000)
+options(stringsAsFactors = FALSE)
+options(scipen=10000)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(sqldf)
+#install.packages("GeneralizedHyperbolic")
+library(GeneralizedHyperbolic)
+library(reshape2)
+library(scales)
+library(plotly)
+#install.packages("devtools")
+#devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+
+infile = "C450_males_AAMR_2010_2014_asbestos_avg1975.txt"
+infile_old = "C450_males_2007_paper.txt"
+infile_Country_3char = "Country_3char.txt"
+
+Country_3char = read.table( infile_Country_3char, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+
+data_for_plot = read.table( infile, sep="\t", header=TRUE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+
+data_for_plot$AAMR_per_million = as.numeric(as.character(data_for_plot$AAMR_per_million))
+data_for_plot$population = as.numeric(as.character(data_for_plot$population))
+data_for_plot$PC_asbestos_kg = as.numeric(as.character(data_for_plot$PC_asbestos_kg))
+data_for_plot$AAMR_per_million_log10 = as.numeric(as.character(data_for_plot$AAMR_per_million_log10))
+data_for_plot$Year = as.numeric(as.character(data_for_plot$Year))
+data_for_plot$male_population = as.numeric(as.character(data_for_plot$male_population))
+
+data_old = read.table( infile_old, sep="\t", header=FALSE, quote='"', comment.char="", row.names=NULL, stringsAsFactors=FALSE, colClasses=c("character") )
+colnames(data_old) = c("Country_Name", "PC_asbestos_kg_old", "AAMR_per_million_old", "population_old")
+
+data_for_plot$colour = "#7B38DE"
+data_for_plot$colour = ifelse( (data_for_plot$Country_Name %in% data_old$Country_Name), "#4E8D24", data_for_plot$colour )
+
+min_population = min(data_for_plot$population)
+max_population = max(data_for_plot$population)
+nudge_x_slope_m = (0.10 - 0.6) / (max_population - min_population)
+nudge_x_intercept_b = 0.6 - nudge_x_slope_m * min_population
+data_for_plot$nudge_x = 1 * (data_for_plot$population * nudge_x_slope_m + nudge_x_intercept_b)
+data_for_plot$nudge_y = 0
+
+data_for_plot$population_for_bubble = data_for_plot$population / max_population * 10
+
+plot_title = basename(infile)
+plot_title = gsub( ".txt", "", plot_title )
+png_stem = gsub( ".txt", "", infile )
+png_name_orig = paste( png_stem, "_orig.png", sep="" )
+png_name_2colours = paste( png_stem, "_2colours.png", sep="" )
+
+ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(colour="#4E8D24", shape=21, size=data_for_plot$population_for_bubble) + 
+  theme(axis.text.x=element_text(angle=0, vjust=0.5, hjust=1)) + scale_y_log10() + scale_x_continuous(limits=c(-0.1,8)) + theme_bw() +
+  theme(panel.border=element_blank(), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), axis.line=element_line(colour="black")) +
+  geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
+  ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
+ggsave(png_name_orig, width=8, height=5)
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="USA"), 0.33, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SGP"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CAN"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HUN"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SVK"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="AUS"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CYP"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="LUX"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BEL"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="AUT"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MAR"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HKG"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PAN"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MDA"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SWE"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KWT"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CZE"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ESP"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="POL"), 0.2, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GBR"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="FRA"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="EST"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NOR"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="IRL"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NLD"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GBR"), 0.19, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="FRA"), 0.19, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NIC"), 0.19, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ECU"), 0.19, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NIC"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ECU"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="LTU"), -0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PER"), -0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CHL"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="TUR"), -0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="URY"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ARG"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ISR"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KOR"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GRC"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ROU"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PRT"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MEX"), -0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="COL"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BGR"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NIC"), 0.15, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="VEN"), -0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ITA"), -0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CHE"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HRV"), 0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DEU"), -0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), 0.2, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NZL"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NZL"), 0.18, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DNK"), 0.2, data_for_plot$nudge_y )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NZL"), 0.05, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DNK"), 0.05, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), -0.22, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DEU"), -0.05, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), -0.18, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="LVA"), 0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), -0.13, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="COL"), -0.05, data_for_plot$nudge_y )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="COL"), -0.02, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NIC"), 0.01, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="USA"), -0.33, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GBR"), -0.19, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KWT"), -0.18, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.22, data_for_plot$nudge_x )
+
+#201021
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="USA"), -0.35, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.22, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="TUR"), -0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.22, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MEX"), -0.23, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KOR"), 0.2, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MAR"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NIC"), 0.02, data_for_plot$nudge_y )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DNK"), 0.06, data_for_plot$nudge_y )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NIC"), 0.02, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="ECU"), -0.01, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="MEX"), 0.01, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GBR"), -0.22, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="FRA"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="FRA"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.25, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="JPN"), 0.25, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="IRL"), -0.01, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KOR"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ROU"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SWE"), 0.2, data_for_plot$nudge_x )
+
+#091121
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="LUX"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CYP"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SGP"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CAN"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HUN"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SVK"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="AUS"), 0.21, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BEL"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="AUT"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MAR"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HKG"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PAN"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MDA"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="AUT"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MAR"), 0.22, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HKG"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PAN"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MDA"), 0.2, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MAR"), 0.23, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KWT"), -0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CZE"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NOR"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NLD"), 0.2, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="SWE"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PRT"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="HRV"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ITA"), -0.23, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DEU"), 0.25, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DEU"), 0, data_for_plot$nudge_y )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DNK"), -0.15, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="DEU"), 0.3, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="DNK"), 0.08, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="JPN"), 0.33, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="FRA"), 0.25, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="FRA"), 0.03, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GBR"), -0.27, data_for_plot$nudge_x)
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="POL"), -0.23, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ESP"), 0.23, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NOR"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="LVA"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="IRL"), -0.02, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="NLD"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="EST"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="GRC"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ROU"), 0.23, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="PER"), -0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="NIC"), 0.04, data_for_plot$nudge_y )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ECU"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="VEN"), -0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BRA"), 0.32, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="ECU"), 0, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MDA"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="USA"), 0.45, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="USA"), 0.05, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="CHL"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="TUR"), -0.23, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ARG"), 0.21, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="URY"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="MEX"), -0.25, data_for_plot$nudge_x )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="ARG"), 0, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="ARG"), 0.06, data_for_plot$nudge_y )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="URY"), 0.01, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BGR"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="COL"), 0.2, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="COL"), -0.03, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="COL"), 0, data_for_plot$nudge_x )
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="COL"), -0.06, data_for_plot$nudge_y )
+
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="KOR"), 0.25, data_for_plot$nudge_x )
+data_for_plot$nudge_x = ifelse( (data_for_plot$Country_3char=="BGR"), 0.22, data_for_plot$nudge_x )
+
+data_for_plot$nudge_y = ifelse( (data_for_plot$Country_3char=="KOR"), -0.01, data_for_plot$nudge_y )
+
+########## Plot of new data
+
+ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(colour="#4E8D24", shape=21, size=data_for_plot$population_for_bubble) + 
+  theme(axis.text.x=element_text(angle=0, vjust=0.5, hjust=1)) + scale_y_log10() + scale_x_continuous(limits=c(-0.1,8)) + theme_bw() +
+  theme(panel.border=element_blank(), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), axis.line=element_line(colour="black")) +
+  geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
+  ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
+ggsave(png_name_orig, width=8, height=5)
+
+ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(colour=data_for_plot$colour, fill=alpha(data_for_plot$colour, 0.2), shape=21, size=data_for_plot$population_for_bubble) + 
+  theme(axis.text.x=element_text(angle=0, vjust=0.5, hjust=1)) + scale_y_log10() + scale_x_continuous(limits=c(-0.1,8)) + theme_bw() +
+  theme(panel.border=element_blank(), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), axis.line=element_line(colour="black")) +
+  geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
+  ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
+ggsave(png_name_2colours, width=8, height=5)
+
+########## 
+
+
+
