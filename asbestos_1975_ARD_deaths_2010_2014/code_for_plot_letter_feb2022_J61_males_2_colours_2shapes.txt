@@ -1,6 +1,5 @@
 
-setwd("C:/emma/KenTakahashi_EcologicalStudy/resubmit_as_letter_2022feb")
-#setwd("C:/Emma_on_Windows_dualboot_desktop/KenTakahashi_EcologicalStudy/letter_feb2022")
+setwd("C:/EcologicalStudy")
 
 options(width=250)
 options(max.print=10000)
