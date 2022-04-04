@@ -56,6 +56,7 @@ plot_title = gsub( ".txt", "", plot_title )
 png_stem = gsub( ".txt", "", infile )
 png_name_orig = paste( png_stem, "_orig.png", sep="" )
 png_name_2colours = paste( png_stem, "_2colours.png", sep="" )
+png_name_2colours_2shapes = paste( png_stem, "_2colours_2shapes.png", sep="" )
 
 ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(colour="#4E8D24", shape=21, size=data_for_plot$population_for_bubble) + 
   theme(axis.text.x=element_text(angle=0, vjust=0.5, hjust=1)) + scale_y_log10() + scale_x_continuous(limits=c(-0.1,8)) + theme_bw() +
@@ -293,6 +294,15 @@ ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(co
   geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
   ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
 ggsave(png_name_2colours, width=8, height=5)
+
+data_for_plot$shape = ifelse( (data_for_plot$colour=="#4E8D24"), 21, 23 )
+
+ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(colour=data_for_plot$colour, fill=alpha(data_for_plot$colour, 0.2), shape=data_for_plot$shape, size=data_for_plot$population_for_bubble) + 
+  theme(axis.text.x=element_text(angle=0, vjust=0.5, hjust=1)) + scale_y_log10() + scale_x_continuous(limits=c(-0.1,8)) + theme_bw() +
+  theme(panel.border=element_blank(), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), axis.line=element_line(colour="black")) +
+  geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
+  ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
+ggsave(png_name_2colours_2shapes, width=8, height=5)
 
 ########## 
 
