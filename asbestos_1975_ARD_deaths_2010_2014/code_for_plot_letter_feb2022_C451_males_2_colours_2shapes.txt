@@ -1,5 +1,6 @@
 
-setwd("C:/EcologicalStudy")
+setwd("C:/emma/KenTakahashi_EcologicalStudy/resubmit_as_letter_2022feb")
+#setwd("C:/Emma_on_Windows_dualboot_desktop/KenTakahashi_EcologicalStudy/letter_feb2022")
 
 options(width=250)
 options(max.print=10000)
@@ -266,7 +267,7 @@ ggplot(data_for_plot, aes(x=PC_asbestos_kg, y=AAMR_per_million)) + geom_point(co
   theme(panel.border=element_blank(), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), axis.line=element_line(colour="black")) +
   geom_text(label=data_for_plot$Country_3char, nudge_x=data_for_plot$nudge_x, nudge_y=data_for_plot$nudge_y, check_overlap=FALSE, size=3) +
   ggtitle(plot_title) + labs(x="1975 asbestos consumption (kg per head per year)", y="Deaths per million people per year 2010-2014")
-ggsave(png_name_2colours_2shapes, width=2.64, height=1.65)
+ggsave(png_name_2colours_2shapes, width=8, height=5)
 
 ########## 
 
