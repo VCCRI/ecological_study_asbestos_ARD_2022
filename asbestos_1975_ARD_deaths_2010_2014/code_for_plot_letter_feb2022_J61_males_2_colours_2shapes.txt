@@ -1,5 +1,5 @@
 
-setwd("C:/EcologicalStudy")
+setwd('/users/yuen/desktop/RData181021')
 
 options(width=250)
 options(max.print=10000)
@@ -49,6 +49,11 @@ data_for_plot$nudge_x = 1 * (data_for_plot$population * nudge_x_slope_m + nudge_
 data_for_plot$nudge_y = 0
 
 data_for_plot$population_for_bubble = data_for_plot$population / max_population * 10
+
+data_for_plot$population_for_bubble = ifelse( (data_for_plot$population_for_bubble <="20000000"), 20000000, data_for_plot$population_for_bubble )
+add_population = 20000000
+data_for_plot$population_for_bubble = (data_for_plot$population + add_population) / max_population * 15
+
 
 plot_title = basename(infile)
 plot_title = gsub( ".txt", "", plot_title )
