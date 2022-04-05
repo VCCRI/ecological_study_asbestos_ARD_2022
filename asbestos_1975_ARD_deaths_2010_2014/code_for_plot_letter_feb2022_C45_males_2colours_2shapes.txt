@@ -1,4 +1,4 @@
-setwd('/users/yuen/desktop/RData181021')
+setwd('/ecological_study')
 
 options(width=250)
 options(max.print=10000)
